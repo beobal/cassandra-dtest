@@ -98,6 +98,23 @@ def assert_invalid(session, query, matching=None, expected=InvalidRequest):
     assert_exception(session, query, matching=matching, expected=expected)
 
 
+def assert_unauthorized_statement(session, statement, message):
+    """
+    Attempt to execute a statement, and assert Unauthorized is raised. Conceptually the same as
+    assert_unauthorized, but for occasions where more control over the execution is required, such
+    as specifying the CL, using BATCH statements etc.
+    @param session Session to use
+    @param statement Statement to run
+    @param message Expected error message
+
+    Examples:
+    assert_unauthorized(session,
+                        SimpleStatement("ALTER USER cassandra NOSUPERUSER", consistency_level=ConsistencyLevel.ALL),
+                        "You aren't allowed to alter your own superuser status")
+    """
+    _assert_exception(lambda x: x.execute(statement), session, matching=message, expected=Unauthorized)
+
+
 def assert_unauthorized(session, query, message):
     """
     Attempt to issue a query, and assert Unauthorized is raised.
