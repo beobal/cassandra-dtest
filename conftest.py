@@ -370,7 +370,7 @@ def loose_version_compare(a, b):
 def _skip_msg(current_running_version, since_version, max_version):
     if loose_version_compare(current_running_version, since_version) < 0:
         return "%s < %s" % (current_running_version, since_version)
-    if max_version and loose_version_compare(current_running_version, max_version) < 0:
+    if max_version and loose_version_compare(max_version, current_running_version) < 0:
         return "%s > %s" % (current_running_version, max_version)
 
 
