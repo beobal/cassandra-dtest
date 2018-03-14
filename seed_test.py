@@ -1,9 +1,11 @@
+from ccmlib import node
 from dtest import Tester
 from time import sleep
 
 import pytest
 
 since = pytest.mark.since
+
 
 class TestGossiper(Tester):
     """
@@ -28,11 +30,19 @@ class TestGossiper(Tester):
                                }]
             })
 
-        node1.start(wait_other_notice=False)
-        self.assert_log_had_msg(node1, "Unable to gossip with any peers", timeout=120)
+        try:
+            STARTUP_TIMEOUT=15 #seconds
+            RING_DELAY=10000 #ms
+            # set startup timeout > ring delay so that startup failure happens before the call to start returns
+            node1.start(wait_for_binary_proto=STARTUP_TIMEOUT, jvm_args=['-Dcassandra.ring_delay_ms={}'.format(RING_DELAY)])
+        except node.TimeoutError as t:
+            self.assert_log_had_msg(node1, "Unable to gossip with any peers")
+        except Exception as e:
+            raise e
+        else:
+            pytest.fail("Expecting startup to raise a TimeoutError, but nothing was raised.")
 
     @since('3.11.2')
-    @pytest.mark.resource_intensive
     def test_startup_non_seed_with_peers(self):
         """
         Test that a node can start if peers are alive, or if a node has been bootstrapped

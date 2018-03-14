@@ -287,7 +287,7 @@ class Tester:
         try:
             node.watch_log_for(msg, timeout=timeout, **kwargs)
         except TimeoutError:
-            self.fail("Log message was not seen within timeout:\n{0}".format(msg))
+            pytest.fail("Log message was not seen within timeout:\n{0}".format(msg))
 
 def get_eager_protocol_version(cassandra_version):
     """
