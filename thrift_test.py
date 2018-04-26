@@ -60,7 +60,7 @@ def pid():
 class TestThrift(Tester):
 
     @pytest.fixture(scope='function', autouse=True)
-    def fixture_dtest_setup_overrides(self):
+    def fixture_dtest_setup_overrides(self, parse_dtest_config):
         dtest_setup_overrides = DTestSetupOverrides()
         """
         @jira_ticket CASSANDRA-7653

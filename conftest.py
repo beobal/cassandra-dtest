@@ -18,7 +18,7 @@ from netifaces import AF_INET
 from psutil import virtual_memory
 
 import netifaces as ni
-
+import ccmlib.repository
 from ccmlib.common import validate_install_dir, get_version_from_build, is_win
 
 from dtest_setup import DTestSetup
@@ -37,6 +37,7 @@ class DTestConfig:
         self.skip_resource_intensive_tests = False
         self.cassandra_dir = None
         self.cassandra_version = None
+        self.cassandra_version_from_build = None
         self.delete_logs = False
         self.execute_upgrade_tests = False
         self.disable_active_log_watching = False
@@ -54,6 +55,13 @@ class DTestConfig:
         if request.config.getoption("--cassandra-dir") is not None:
             self.cassandra_dir = os.path.expanduser(request.config.getoption("--cassandra-dir"))
         self.cassandra_version = request.config.getoption("--cassandra-version")
+
+        if self.cassandra_version is not None:
+            ccm_repo_cache_dir, _ = ccmlib.repository.setup(self.cassandra_version)
+            self.cassandra_version_from_build = get_version_from_build(ccm_repo_cache_dir)
+        elif self.cassandra_dir is not None:
+            self.cassandra_version_from_build = get_version_from_build(self.cassandra_dir)
+
         self.delete_logs = request.config.getoption("--delete-logs")
         self.execute_upgrade_tests = request.config.getoption("--execute-upgrade-tests")
         self.disable_active_log_watching = request.config.getoption("--disable-active-log-watching")
@@ -122,7 +130,7 @@ def sufficient_system_resources_for_resource_intensive_tests():
 
 
 @pytest.fixture(scope='function', autouse=True)
-def fixture_dtest_setup_overrides():
+def fixture_dtest_setup_overrides(parse_dtest_config):
     """
     no-op default implementation of fixture_dtest_setup_overrides.
     we run this when a test class hasn't implemented their own
@@ -302,9 +310,6 @@ def reset_environment_vars(initial_environment):
     os.environ['PYTEST_CURRENT_TEST'] = pytest_current_test
 
 
-
-
-
 @pytest.fixture(scope='function', autouse=False)
 def fixture_dtest_setup(request, parse_dtest_config, fixture_dtest_setup_overrides, fixture_logging_setup):
     if running_in_docker():
@@ -393,7 +398,9 @@ def fixture_since(request, fixture_dtest_setup):
 
         since_str = request.node.get_marker('since').args[0]
         since = LooseVersion(since_str)
-        current_running_version = fixture_dtest_setup.cluster.version()
+        # use cassandra_version_from_build as it's guaranteed to be a LooseVersion
+        # whereas cassandra_version may be a string if set in the cli options
+        current_running_version = fixture_dtest_setup.dtest_config.cassandra_version_from_build
         skip_msg = _skip_msg(current_running_version, since, max_version)
         if skip_msg:
             pytest.skip(skip_msg)
