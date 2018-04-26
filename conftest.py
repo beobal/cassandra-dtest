@@ -56,6 +56,11 @@ class DTestConfig:
             self.cassandra_dir = os.path.expanduser(request.config.getoption("--cassandra-dir"))
         self.cassandra_version = request.config.getoption("--cassandra-version")
 
+        # There are times when we want to know the C* version we're testing against
+        # before we do any cluster. In the general case, we can't know that -- the
+        # test method could use any version it wants for self.cluster. However, we can
+        # get the version from build.xml in the C* repository specified by
+        # CASSANDRA_VERSION or CASSANDRA_DIR.
         if self.cassandra_version is not None:
             ccm_repo_cache_dir, _ = ccmlib.repository.setup(self.cassandra_version)
             self.cassandra_version_from_build = get_version_from_build(ccm_repo_cache_dir)
@@ -404,6 +409,16 @@ def fixture_since(request, fixture_dtest_setup):
         skip_msg = _skip_msg(current_running_version, since, max_version)
         if skip_msg:
             pytest.skip(skip_msg)
+
+
+@pytest.fixture(autouse=True)
+def fixture_skip_version(request, fixture_dtest_setup):
+    marker = request.node.get_marker('skip_version')
+    if marker is not None:
+        for info in marker:
+            version_to_skip = LooseVersion(info.args[0])
+            if version_to_skip == fixture_dtest_setup.dtest_config.cassandra_version_from_build:
+                pytest.skip("Test marked not to run on version %s" % version_to_skip)
 
 
 @pytest.fixture(scope='session', autouse=True)
