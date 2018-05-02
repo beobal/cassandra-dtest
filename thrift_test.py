@@ -60,7 +60,7 @@ def pid():
 class TestThrift(Tester):
 
     @pytest.fixture(scope='function', autouse=True)
-    def fixture_dtest_setup_overrides(self, parse_dtest_config):
+    def fixture_dtest_setup_overrides(self, dtest_config):
         dtest_setup_overrides = DTestSetupOverrides()
         """
         @jira_ticket CASSANDRA-7653
@@ -71,7 +71,7 @@ class TestThrift(Tester):
         return dtest_setup_overrides
 
     @pytest.fixture(scope='function', autouse=True)
-    def fixture_set_cluster_settings(self, fixture_dtest_setup, set_dtest_setup_on_function):
+    def fixture_set_cluster_settings(self, fixture_dtest_setup):
         fixture_dtest_setup.cluster.populate(1)
         node1, = fixture_dtest_setup.cluster.nodelist()
 
@@ -79,7 +79,7 @@ class TestThrift(Tester):
         # Because ccm will not set a hex token for ByteOrderedPartitioner
         # automatically. It does not matter what token we set as we only
         # ever use one node.
-        if not self.dtest_config.use_vnodes:
+        if not fixture_dtest_setup.dtest_config.use_vnodes:
             node1.set_configuration_options(values={'initial_token': 'abcd'})
 
         # CASSANDRA-14092 - prevent max ttl tests from failing

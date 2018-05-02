@@ -233,9 +233,9 @@ class Tester:
             return object.__getattribute__(fixture_dtest_setup , name)
 
     @pytest.fixture(scope='function', autouse=True)
-    def set_dtest_setup_on_function(self, fixture_dtest_setup, fixture_dtest_config):
+    def set_dtest_setup_on_function(self, fixture_dtest_setup):
         self.fixture_dtest_setup = fixture_dtest_setup
-        self.dtest_config = fixture_dtest_config
+        self.dtest_config = fixture_dtest_setup.dtest_config
 
     def set_node_to_current_version(self, node):
         version = os.environ.get('CASSANDRA_VERSION')

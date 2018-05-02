@@ -135,7 +135,7 @@ def sufficient_system_resources_for_resource_intensive_tests():
 
 
 @pytest.fixture(scope='function', autouse=True)
-def fixture_dtest_setup_overrides(parse_dtest_config):
+def fixture_dtest_setup_overrides(dtest_config):
     """
     no-op default implementation of fixture_dtest_setup_overrides.
     we run this when a test class hasn't implemented their own
@@ -203,20 +203,10 @@ def fixture_logging_setup(request):
 
 
 @pytest.fixture(scope="session")
-def log_global_env_facts(fixture_dtest_config):
+def log_global_env_facts(fixture_dtest_config, fixture_logging_setup):
     if pytest.config.pluginmanager.hasplugin('junitxml'):
         my_junit = getattr(pytest.config, '_xml', None)
         my_junit.add_global_property('USE_VNODES', fixture_dtest_config.use_vnodes)
-
-
-@pytest.fixture
-def fixture_dtest_config(request, fixture_logging_setup):
-    # although we don't use fixture_logging_setup here, we do want to
-    # have that fixture run as a prerequisite to this one.. and right now
-    # this is the only way that can be done with pytests
-    dtest_config = DTestConfig()
-    dtest_config.setup(request)
-    return dtest_config
 
 
 @pytest.fixture(scope='function', autouse=True)
@@ -234,7 +224,7 @@ def fixture_maybe_skip_tests_requiring_novnodes(request):
 
 
 @pytest.fixture(scope='function', autouse=True)
-def fixture_log_test_name_and_date(request):
+def fixture_log_test_name_and_date(request, fixture_logging_setup):
     logger.info("Starting execution of %s at %s" % (request.node.name, str(datetime.now())))
 
 
@@ -316,17 +306,17 @@ def reset_environment_vars(initial_environment):
 
 
 @pytest.fixture(scope='function', autouse=False)
-def fixture_dtest_setup(request, parse_dtest_config, fixture_dtest_setup_overrides, fixture_logging_setup):
+def fixture_dtest_setup(request, dtest_config, fixture_dtest_setup_overrides, fixture_logging_setup):
     if running_in_docker():
         cleanup_docker_environment_before_test_execution()
 
     # do all of our setup operations to get the enviornment ready for the actual test
     # to run (e.g. bring up a cluster with the necessary config, populate variables, etc)
     initial_environment = copy.deepcopy(os.environ)
-    dtest_setup = DTestSetup(dtest_config=parse_dtest_config, setup_overrides=fixture_dtest_setup_overrides)
+    dtest_setup = DTestSetup(dtest_config=dtest_config, setup_overrides=fixture_dtest_setup_overrides)
     dtest_setup.initialize_cluster()
 
-    if not parse_dtest_config.disable_active_log_watching:
+    if not dtest_config.disable_active_log_watching:
         dtest_setup.log_watch_thread = dtest_setup.begin_active_log_watch()
 
     # at this point we're done with our setup operations in this fixture
@@ -354,7 +344,7 @@ def fixture_dtest_setup(request, parse_dtest_config, fixture_dtest_setup_overrid
     finally:
         try:
             # save the logs for inspection
-            if failed or not parse_dtest_config.delete_logs:
+            if failed or not dtest_config.delete_logs:
                 copy_logs(request, dtest_setup.cluster)
         except Exception as e:
             logger.error("Error saving log:", str(e))
@@ -427,8 +417,8 @@ def install_debugging_signal_handler():
     faulthandler.enable()
 
 
-@pytest.fixture(scope='function')
-def parse_dtest_config(request):
+@pytest.fixture(scope='session')
+def dtest_config(request):
     dtest_config = DTestConfig()
     dtest_config.setup(request)
 
