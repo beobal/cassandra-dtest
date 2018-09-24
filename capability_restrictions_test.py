@@ -416,15 +416,14 @@ class TestCapabilityRestrictions(Tester):
         future.result()
 
         try:
-            self.assertIsNone(future.get_query_trace(max_wait=2), "Expected no query trace, but found one")
+            assert future.get_query_trace(max_wait=2) is None, "Expected no query trace, but found one"
         except TraceUnavailable:
             pass
 
-        self.assertIsNotNone(future.warnings)
-        self.assertEquals(1, len(future.warnings))
-        self.assertEquals("Query tracing was triggered either explicitly or probabilistically "
-                          "but is restricted for role {role} or one of its granted roles.".format(role=role),
-                          future.warnings[0])
+        assert future.warnings is not None, "Expected client warning, but received none"
+        assert len(future.warnings) == 1, "Expected 1 client warning, got {l}".format(l=len(future.warnings))
+        assert future.warnings[0] == "Query tracing was triggered either explicitly or probabilistically " \
+                                     "but is restricted for role {role} or one of its granted roles.".format(role=role)
 
     def check_unprepared_statement_restrictions(self, admin):
         role = self.next_role()
