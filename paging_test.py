@@ -1898,14 +1898,14 @@ class TestPagingData(BasePagingTester, PageAssertionMixin):
                              page_size_error_msg
 
             res = rows_to_list(session.execute("SELECT * FROM test WHERE cnt = 5 ALLOW FILTERING"))
-            self.assertEqualIgnoreOrder(res, [[0, 3, 4, 5],
+            assert_lists_equal_ignoring_order(res, [[0, 3, 4, 5],
                                               [1, 3, 4, 5],
                                               [2, 3, 4, 5],
                                               [3, 3, 4, 5],
                                               [4, 3, 4, 5]])
 
             res = rows_to_list(session.execute("SELECT * FROM test WHERE a IN (1,2,3) AND cnt = 5 ALLOW FILTERING"))
-            self.assertEqualIgnoreOrder(res, [[1, 3, 4, 5],
+            assert_lists_equal_ignoring_order(res, [[1, 3, 4, 5],
                                               [2, 3, 4, 5],
                                               [3, 3, 4, 5]])
 
@@ -2033,6 +2033,8 @@ class TestPagingData(BasePagingTester, PageAssertionMixin):
                 session.execute("INSERT INTO test_list (a,b,c,d) VALUES ({},{},[{}, {}],{})".format(i, j, j + 1, j + 2, j + 3, j + 4))
                 session.execute("INSERT INTO test_map (a,b,c,d) VALUES ({},{},{{ {}: {} }},{})".format(i, j, j + 1, j + 2, j + 3, j + 4))
 
+
+
         for page_size in (2, 3, 4, 5, 7, 10, 20):
             session.default_fetch_size = page_size
 
@@ -2157,27 +2159,27 @@ class TestPagingData(BasePagingTester, PageAssertionMixin):
 
             # Range queries
             res = rows_to_list(session.execute("SELECT * FROM test WHERE a < 5 AND c = 2 ALLOW FILTERING"))
-            self.assertEqualIgnoreOrder(res, [[0, 2, 0, 2, 2],
+            assert_lists_equal_ignoring_order(res, [[0, 2, 0, 2, 2],
                                               [1, 2, 1, 2, 3],
                                               [3, 2, 3, 2, 5],
                                               [4, 2, 4, 2, 6]])
 
             res = rows_to_list(session.execute("SELECT * FROM test WHERE a > 0 AND c > 1 AND c <= 2 ALLOW FILTERING"))
-            self.assertEqualIgnoreOrder(res, [[1, 2, 1, 2, 3],
+            assert_lists_equal_ignoring_order(res, [[1, 2, 1, 2, 3],
                                               [3, 2, 3, 2, 5],
                                               [4, 2, 4, 2, 6]])
 
             res = rows_to_list(session.execute("SELECT * FROM test WHERE a >= 2 AND c = 2 AND d > 4 ALLOW FILTERING"))
-            self.assertEqualIgnoreOrder(res, [[3, 2, 3, 2, 5],
+            assert_lists_equal_ignoring_order(res, [[3, 2, 3, 2, 5],
                                               [4, 2, 4, 2, 6]])
 
             res = rows_to_list(session.execute("SELECT * FROM test WHERE a >= 2 AND c = 2 AND s > 1 ALLOW FILTERING"))
-            self.assertEqualIgnoreOrder(res, [[3, 2, 3, 2, 5],
+            assert_lists_equal_ignoring_order(res, [[3, 2, 3, 2, 5],
                                               [4, 2, 4, 2, 6]])
 
             # Range queries with LIMIT
             res = rows_to_list(session.execute("SELECT * FROM test WHERE a <= 1 AND c = 2 LIMIT 2 ALLOW FILTERING"))
-            self.assertEqualIgnoreOrder(res, [[0, 2, 0, 2, 2],
+            assert_lists_equal_ignoring_order(res, [[0, 2, 0, 2, 2],
                                               [1, 2, 1, 2, 3]])
 
             res = rows_to_list(session.execute("SELECT * FROM test WHERE a <= 1 AND c = 2 AND s >= 1 LIMIT 2 ALLOW FILTERING"))
@@ -2185,7 +2187,7 @@ class TestPagingData(BasePagingTester, PageAssertionMixin):
 
             # Range query with DISTINCT
             res = rows_to_list(session.execute("SELECT DISTINCT a, s FROM test WHERE a >= 2 AND s >= 1 ALLOW FILTERING"))
-            self.assertEqualIgnoreOrder(res, [[2, 2],
+            assert_lists_equal_ignoring_order(res, [[2, 2],
                                               [4, 4],
                                               [3, 3]])
 
@@ -2203,7 +2205,7 @@ class TestPagingData(BasePagingTester, PageAssertionMixin):
             assert res == [[0, 1, 0, 1, 1]]
 
             res = rows_to_list(session.execute("SELECT * FROM test WHERE a >= 3 AND c >= 1 AND s > 1 ALLOW FILTERING"))
-            self.assertEqualIgnoreOrder(res, [[3, 1, 3, 1, 4],
+            assert_lists_equal_ignoring_order(res, [[3, 1, 3, 1, 4],
                                               [3, 2, 3, 2, 5],
                                               [3, 3, 3, 3, 6],
                                               [4, 1, 4, 1, 5],
@@ -2211,7 +2213,7 @@ class TestPagingData(BasePagingTester, PageAssertionMixin):
                                               [4, 3, 4, 3, 7]])
 
             res = rows_to_list(session.execute("SELECT * FROM test WHERE a >= 3 AND c >= 1 AND s > 1 PER PARTITION LIMIT 2 ALLOW FILTERING"))
-            self.assertEqualIgnoreOrder(res, [[3, 1, 3, 1, 4],
+            assert_lists_equal_ignoring_order(res, [[3, 1, 3, 1, 4],
                                               [3, 2, 3, 2, 5],
                                               [4, 1, 4, 1, 5],
                                               [4, 2, 4, 2, 6]])
@@ -2257,7 +2259,7 @@ class TestPagingData(BasePagingTester, PageAssertionMixin):
             session.default_fetch_size = page_size
 
             res = rows_to_list(session.execute("SELECT * FROM test WHERE a >=2 AND b = 2 LIMIT 4 ALLOW FILTERING"))
-            self.assertEqualIgnoreOrder(res,
+            assert_lists_equal_ignoring_order(res,
                                         [[2, 2, 0, 3, 2],
                                          [2, 2, 1, 3, 3],
                                          [2, 2, 2, 3, 4],
@@ -2300,7 +2302,7 @@ class TestPagingData(BasePagingTester, PageAssertionMixin):
                                    [4, 8, 9, 10]]
 
             res = rows_to_list(session.execute("SELECT * FROM test WHERE a > 1 AND cnt = 5 ALLOW FILTERING"))
-            self.assertEqualIgnoreOrder(res, [[2, 3, 4, 5],
+            assert_lists_equal_ignoring_order(res, [[2, 3, 4, 5],
                                               [3, 3, 4, 5],
                                               [4, 3, 4, 5]])
 
@@ -2379,30 +2381,30 @@ class TestPagingData(BasePagingTester, PageAssertionMixin):
             assert res == [[0, 2, 3, 4]]
 
             res = rows_to_list(session.execute("SELECT * FROM test WHERE a > 0 AND b > 7 AND c > 9 ALLOW FILTERING"))
-            self.assertEqualIgnoreOrder(res, [[4, 9, 10, 11],
+            assert_lists_equal_ignoring_order(res, [[4, 9, 10, 11],
                                               [2, 9, 10, 11],
                                               [1, 9, 10, 11],
                                               [3, 9, 10, 11]])
 
             res = rows_to_list(session.execute("SELECT * FROM test WHERE a < 1 AND c > 9 ALLOW FILTERING"))
-            self.assertEqualIgnoreOrder(res, [[0, 9, 10, 11]])
+            assert_lists_equal_ignoring_order(res, [[0, 9, 10, 11]])
 
             res = rows_to_list(session.execute("SELECT * FROM test WHERE b > 4 AND b < 6 AND c > 3 ALLOW FILTERING"))
-            self.assertEqualIgnoreOrder(res, [[2, 5, 6, 7],
+            assert_lists_equal_ignoring_order(res, [[2, 5, 6, 7],
                                               [0, 5, 6, 7],
                                               [1, 5, 6, 7],
                                               [3, 5, 6, 7],
                                               [4, 5, 6, 7]])
 
             res = rows_to_list(session.execute("SELECT * FROM test WHERE d = 5 ALLOW FILTERING"))
-            self.assertEqualIgnoreOrder(res, [[0, 3, 4, 5],
+            assert_lists_equal_ignoring_order(res, [[0, 3, 4, 5],
                                               [3, 3, 4, 5],
                                               [1, 3, 4, 5],
                                               [2, 3, 4, 5],
                                               [4, 3, 4, 5]])
 
             res = rows_to_list(session.execute("SELECT * FROM test WHERE a > 0 AND b = 4 AND c >=5 ALLOW FILTERING"))
-            self.assertEqualIgnoreOrder(res, [[3, 4, 5, 6],
+            assert_lists_equal_ignoring_order(res, [[3, 4, 5, 6],
                                               [2, 4, 5, 6],
                                               [1, 4, 5, 6],
                                               [4, 4, 5, 6]])
@@ -2445,61 +2447,61 @@ class TestPagingData(BasePagingTester, PageAssertionMixin):
             session.default_fetch_size = page_size
 
             res = rows_to_list(session.execute("SELECT * FROM test_list WHERE a >= 3 AND c CONTAINS 11 ALLOW FILTERING"))
-            self.assertEqualIgnoreOrder(res, [[3, 9, [10, 11], 12],
+            assert_lists_equal_ignoring_order(res, [[3, 9, [10, 11], 12],
                                               [4, 9, [10, 11], 12]])
 
             res = rows_to_list(session.execute("SELECT * FROM test_map WHERE a <= 4 AND c CONTAINS KEY 10 ALLOW FILTERING"))
-            self.assertEqualIgnoreOrder(res, [[0, 9, {10: 11}, 12],
+            assert_lists_equal_ignoring_order(res, [[0, 9, {10: 11}, 12],
                                               [1, 9, {10: 11}, 12],
                                               [2, 9, {10: 11}, 12],
                                               [3, 9, {10: 11}, 12],
                                               [4, 9, {10: 11}, 12]])
 
             res = rows_to_list(session.execute("SELECT * FROM test_list WHERE a >= 0 AND c CONTAINS 2 AND c CONTAINS 3 ALLOW FILTERING"))
-            self.assertEqualIgnoreOrder(res, [[0, 1, [2, 3], 4],
+            assert_lists_equal_ignoring_order(res, [[0, 1, [2, 3], 4],
                                               [1, 1, [2, 3], 4],
                                               [2, 1, [2, 3], 4],
                                               [3, 1, [2, 3], 4],
                                               [4, 1, [2, 3], 4]])
 
             res = rows_to_list(session.execute("SELECT * FROM test_map WHERE a >= 3 AND c CONTAINS KEY 2 AND c CONTAINS 3 ALLOW FILTERING"))
-            self.assertEqualIgnoreOrder(res, [[3, 1, {2: 3}, 4],
+            assert_lists_equal_ignoring_order(res, [[3, 1, {2: 3}, 4],
                                               [4, 1, {2: 3}, 4]])
 
             res = rows_to_list(session.execute("SELECT * FROM test_list WHERE a < 5 AND c CONTAINS 2 AND d = 4 ALLOW FILTERING"))
-            self.assertEqualIgnoreOrder(res, [[0, 1, [2, 3], 4],
+            assert_lists_equal_ignoring_order(res, [[0, 1, [2, 3], 4],
                                               [1, 1, [2, 3], 4],
                                               [2, 1, [2, 3], 4],
                                               [3, 1, [2, 3], 4],
                                               [4, 1, [2, 3], 4]])
 
             res = rows_to_list(session.execute("SELECT * FROM test_map WHERE a > -1 AND c CONTAINS KEY 2 AND d = 4 ALLOW FILTERING"))
-            self.assertEqualIgnoreOrder(res, [[0, 1, {2: 3}, 4],
+            assert_lists_equal_ignoring_order(res, [[0, 1, {2: 3}, 4],
                                               [1, 1, {2: 3}, 4],
                                               [2, 1, {2: 3}, 4],
                                               [3, 1, {2: 3}, 4],
                                               [4, 1, {2: 3}, 4]])
 
             res = rows_to_list(session.execute("SELECT * FROM test_list WHERE a < 4 AND c CONTAINS 2 AND d = 4 ALLOW FILTERING"))
-            self.assertEqualIgnoreOrder(res, [[0, 1, [2, 3], 4],
+            assert_lists_equal_ignoring_order(res, [[0, 1, [2, 3], 4],
                                               [1, 1, [2, 3], 4],
                                               [2, 1, [2, 3], 4],
                                               [3, 1, [2, 3], 4]])
 
             res = rows_to_list(session.execute("SELECT * FROM test_map WHERE a >= 0 AND c CONTAINS KEY 2 AND d = 4 ALLOW FILTERING"))
-            self.assertEqualIgnoreOrder(res, [[0, 1, {2: 3}, 4],
+            assert_lists_equal_ignoring_order(res, [[0, 1, {2: 3}, 4],
                                               [1, 1, {2: 3}, 4],
                                               [2, 1, {2: 3}, 4],
                                               [3, 1, {2: 3}, 4],
                                               [4, 1, {2: 3}, 4]])
 
             res = rows_to_list(session.execute("SELECT * FROM test_list WHERE a <= 2 AND c CONTAINS 2 AND d < 4 ALLOW FILTERING"))
-            self.assertEqualIgnoreOrder(res, [[0, 0, [1, 2], 3],
+            assert_lists_equal_ignoring_order(res, [[0, 0, [1, 2], 3],
                                               [1, 0, [1, 2], 3],
                                               [2, 0, [1, 2], 3]])
 
             res = rows_to_list(session.execute("SELECT * FROM test_map WHERE a >= -1 AND c CONTAINS KEY 1 AND d < 4 ALLOW FILTERING"))
-            self.assertEqualIgnoreOrder(res, [[0, 0, {1: 2}, 3],
+            assert_lists_equal_ignoring_order(res, [[0, 0, {1: 2}, 3],
                                               [1, 0, {1: 2}, 3],
                                               [2, 0, {1: 2}, 3],
                                               [3, 0, {1: 2}, 3],
@@ -2523,11 +2525,11 @@ class TestPagingData(BasePagingTester, PageAssertionMixin):
             session.default_fetch_size = page_size
 
             res = rows_to_list(session.execute("SELECT * FROM test WHERE a <= 2 AND s > 1 AND b > 8 ALLOW FILTERING"))
-            self.assertEqualIgnoreOrder(res, [[1, 9, 2, 10],
+            assert_lists_equal_ignoring_order(res, [[1, 9, 2, 10],
                                               [2, 9, 3, 10]])
 
             res = rows_to_list(session.execute("SELECT * FROM test WHERE a > 3 AND s > 1 AND b > 5 AND b < 7 ALLOW FILTERING"))
-            self.assertEqualIgnoreOrder(res, [[4, 6, 5, 7]])
+            assert_lists_equal_ignoring_order(res, [[4, 6, 5, 7]])
 
             res = rows_to_list(session.execute("SELECT * FROM test WHERE s > 1 AND a > 3 AND b > 4 ALLOW FILTERING"))
             assert res == [[4, 5, 5, 6],
@@ -2864,8 +2866,7 @@ class TestPagingDatasetChanges(BasePagingTester, PageAssertionMixin):
         pf.request_all()
         assert pf.pagecount() == 2
         assert pf.num_results_all(), [501, 499]
-
-        self.assertEqualIgnoreOrder(pf.all_data(), expected_data)
+        assert_lists_equal_ignoring_order(pf.all_data(), expected_data, "mytext")
 
     def test_data_change_impacting_later_page(self):
         session = self.prepare()
@@ -2900,7 +2901,7 @@ class TestPagingDatasetChanges(BasePagingTester, PageAssertionMixin):
 
         # add the new row to the expected data and then do a compare
         expected_data.append({'id': 2, 'mytext': 'foo'})
-        self.assertEqualIgnoreOrder(pf.all_data(), expected_data)
+        assert_lists_equal_ignoring_order(pf.all_data(), expected_data, "mytext")
 
     def test_row_TTL_expiry_during_paging(self):
         session = self.prepare()
@@ -3121,17 +3122,17 @@ class TestPagingQueryIsolation(BasePagingTester, PageAssertionMixin):
         assert page_fetchers[9].pagecount() == 4
         assert page_fetchers[10].pagecount() == 34
 
-        self.assertEqualIgnoreOrder(flatten_into_set(page_fetchers[0].all_data()), flatten_into_set(expected_data[:5000]))
-        self.assertEqualIgnoreOrder(flatten_into_set(page_fetchers[1].all_data()), flatten_into_set(expected_data[5000:10000]))
-        self.assertEqualIgnoreOrder(flatten_into_set(page_fetchers[2].all_data()), flatten_into_set(expected_data[10000:15000]))
-        self.assertEqualIgnoreOrder(flatten_into_set(page_fetchers[3].all_data()), flatten_into_set(expected_data[15000:20000]))
-        self.assertEqualIgnoreOrder(flatten_into_set(page_fetchers[4].all_data()), flatten_into_set(expected_data[20000:25000]))
-        self.assertEqualIgnoreOrder(flatten_into_set(page_fetchers[5].all_data()), flatten_into_set(expected_data[:5000]))
-        self.assertEqualIgnoreOrder(flatten_into_set(page_fetchers[6].all_data()), flatten_into_set(expected_data[5000:10000]))
-        self.assertEqualIgnoreOrder(flatten_into_set(page_fetchers[7].all_data()), flatten_into_set(expected_data[10000:15000]))
-        self.assertEqualIgnoreOrder(flatten_into_set(page_fetchers[8].all_data()), flatten_into_set(expected_data[15000:20000]))
-        self.assertEqualIgnoreOrder(flatten_into_set(page_fetchers[9].all_data()), flatten_into_set(expected_data[20000:25000]))
-        self.assertEqualIgnoreOrder(flatten_into_set(page_fetchers[10].all_data()), flatten_into_set(expected_data[:50000]))
+        assert_lists_equal_ignoring_order(flatten_into_set(page_fetchers[0].all_data()), flatten_into_set(expected_data[:5000]))
+        assert_lists_equal_ignoring_order(flatten_into_set(page_fetchers[1].all_data()), flatten_into_set(expected_data[5000:10000]))
+        assert_lists_equal_ignoring_order(flatten_into_set(page_fetchers[2].all_data()), flatten_into_set(expected_data[10000:15000]))
+        assert_lists_equal_ignoring_order(flatten_into_set(page_fetchers[3].all_data()), flatten_into_set(expected_data[15000:20000]))
+        assert_lists_equal_ignoring_order(flatten_into_set(page_fetchers[4].all_data()), flatten_into_set(expected_data[20000:25000]))
+        assert_lists_equal_ignoring_order(flatten_into_set(page_fetchers[5].all_data()), flatten_into_set(expected_data[:5000]))
+        assert_lists_equal_ignoring_order(flatten_into_set(page_fetchers[6].all_data()), flatten_into_set(expected_data[5000:10000]))
+        assert_lists_equal_ignoring_order(flatten_into_set(page_fetchers[7].all_data()), flatten_into_set(expected_data[10000:15000]))
+        assert_lists_equal_ignoring_order(flatten_into_set(page_fetchers[8].all_data()), flatten_into_set(expected_data[15000:20000]))
+        assert_lists_equal_ignoring_order(flatten_into_set(page_fetchers[9].all_data()), flatten_into_set(expected_data[20000:25000]))
+        assert_lists_equal_ignoring_order(flatten_into_set(page_fetchers[10].all_data()), flatten_into_set(expected_data[:50000]))
 
 
 @since('2.0')

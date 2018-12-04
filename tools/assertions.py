@@ -1,6 +1,5 @@
 import re
 from time import sleep
-from tools.misc import list_to_hashed_dict
 
 from cassandra import (InvalidRequest, ReadFailure, ReadTimeout, Unauthorized,
                        Unavailable, WriteFailure, WriteTimeout)
@@ -167,8 +166,8 @@ def assert_all(session, query, expected, cl=None, ignore_order=False, timeout=No
     res = session.execute(simple_query) if timeout is None else session.execute(simple_query, timeout=timeout)
     list_res = _rows_to_list(res)
     if ignore_order:
-        expected = list_to_hashed_dict(expected)
-        list_res = list_to_hashed_dict(list_res)
+        expected = sorted(expected)
+        list_res = sorted(list_res)
     assert list_res == expected, "Expected {} from {}, but got {}".format(expected, query, list_res)
 
 
@@ -310,11 +309,12 @@ def assert_bootstrap_state(tester, node, expected_bootstrap_state):
     assert_one(session, "SELECT bootstrapped FROM system.local WHERE key='local'", [expected_bootstrap_state])
     session.shutdown()
 
-
 def assert_lists_equal_ignoring_order(list1, list2, sort_key=None):
     """
     asserts that the contents of the two provided lists are equal
-    but ignoring the order that the items of the lists are actually in
+    but ignoring the order that the items of the lists are actually in.
+    sort_key should *always* be supplied if list1 and list2 are lists
+    of dicts
     :param list1: list to check if it's contents are equal to list2
     :param list2: list to check if it's contents are equal to list1
     :param sort_key: if the contents of the list are of type dict, the
@@ -329,8 +329,9 @@ def assert_lists_equal_ignoring_order(list1, list2, sort_key=None):
         normalized_list2.append(obj)
 
     if not sort_key:
-        sorted_list1 = sorted(normalized_list1, key=lambda elm: elm[0])
-        sorted_list2 = sorted(normalized_list2, key=lambda elm: elm[0])
+        # if list1 and list2 are actually lists of dicts then this will error as dicts are not natively comparable
+        sorted_list1 = sorted(normalized_list1)
+        sorted_list2 = sorted(normalized_list2)
     else:
         # first always sort by "id"
         # that way we get a two factor sort which will increase the chance of ordering lists exactly the same

@@ -10,7 +10,7 @@ from cassandra.query import SimpleStatement, dict_factory, named_tuple_factory
 from ccmlib.common import LogPatternToVersion
 
 from dtest import RUN_STATIC_UPGRADE_MATRIX, run_scenarios
-from tools.assertions import assert_read_timeout_or_failure
+from tools.assertions import assert_lists_equal_ignoring_order, assert_read_timeout_or_failure
 from tools.data import rows_to_list
 from tools.datahelp import create_rows, flatten_into_set, parse_data_into_dicts
 from tools.paging import PageAssertionMixin, PageFetcher
@@ -121,7 +121,7 @@ class TestPagingSize(BasePagingTester, PageAssertionMixin):
             assert pf.num_results_all() == [5, 4]
 
             # make sure expected and actual have same data elements (ignoring order)
-            self.assertEqualIgnoreOrder(pf.all_data(), expected_data)
+            assert_lists_equal_ignoring_order(pf.all_data(), expected_data, sort_key='value')
 
     def test_with_equal_results_to_page_size(self):
         cursor = self.prepare()
@@ -151,7 +151,7 @@ class TestPagingSize(BasePagingTester, PageAssertionMixin):
             assert pf.pagecount() == 1
 
             # make sure expected and actual have same data elements (ignoring order)
-            self.assertEqualIgnoreOrder(pf.all_data(), expected_data)
+            assert_lists_equal_ignoring_order(pf.all_data(), expected_data, sort_key='value')
 
     def test_undefined_page_size_default(self):
         """
@@ -181,9 +181,8 @@ class TestPagingSize(BasePagingTester, PageAssertionMixin):
 
             assert pf.num_results_all(), [5000 == 1]
 
-            self.maxDiff = None
             # make sure expected and actual have same data elements (ignoring order)
-            self.assertEqualIgnoreOrder(pf.all_data(), expected_data)
+            assert_lists_equal_ignoring_order(pf.all_data(), expected_data, sort_key='value')
 
 
 class TestPagingWithModifiers(BasePagingTester, PageAssertionMixin):
@@ -422,7 +421,7 @@ class TestPagingWithModifiers(BasePagingTester, PageAssertionMixin):
             assert pf.num_results_all() == [4, 3]
 
             # make sure the allow filtering query matches the expected results (ignoring order)
-            self.assertEqualIgnoreOrder(
+            assert_lists_equal_ignoring_order(
                 pf.all_data(),
                 parse_data_into_dicts(
                     """
@@ -435,7 +434,8 @@ class TestPagingWithModifiers(BasePagingTester, PageAssertionMixin):
                     |8 |and more testing|
                     |9 |and more testing|
                     """, format_funcs={'id': int, 'value': str}
-                )
+                ),
+                sort_key='value'
             )
 
 
@@ -485,8 +485,6 @@ class TestPagingData(BasePagingTester, PageAssertionMixin):
                     logger.debug("Using fetch size %d" % fetch_size)
                     cursor.default_fetch_size = fetch_size
                     results = rows_to_list(cursor.execute("SELECT * FROM %s" % (table,)))
-                    import pprint
-                    pprint.pprint(results)
                     assert len(expected) == len(results)
                     assert expected == results
 
@@ -532,8 +530,6 @@ class TestPagingData(BasePagingTester, PageAssertionMixin):
                     logger.debug("Using fetch size %d" % fetch_size)
                     cursor.default_fetch_size = fetch_size
                     results = rows_to_list(cursor.execute("SELECT * FROM %s" % (table,)))
-                    import pprint
-                    pprint.pprint(results)
                     assert len(expected) == len(results)
                     assert expected == results
 
@@ -564,9 +560,7 @@ class TestPagingData(BasePagingTester, PageAssertionMixin):
             assert pf.num_results_all(), [3000, 3000, 3000 == 1000]
 
             all_results = pf.all_data()
-            assert len(expected_data) == len(all_results)
-            self.maxDiff = None
-            self.assertEqualIgnoreOrder(expected_data, all_results)
+            assert_lists_equal_ignoring_order(expected_data, all_results, "value")
 
     def test_paging_across_multi_wide_rows(self):
         cursor = self.prepare()
@@ -594,8 +588,7 @@ class TestPagingData(BasePagingTester, PageAssertionMixin):
 
             assert pf.pagecount() == 4
             assert pf.num_results_all(), [3000, 3000, 3000 == 1000]
-
-            self.assertEqualIgnoreOrder(pf.all_data(), expected_data)
+            assert_lists_equal_ignoring_order(expected_data, pf.all_data(), "value")
 
     def test_paging_using_secondary_indexes(self):
         cursor = self.prepare()
@@ -635,7 +628,7 @@ class TestPagingData(BasePagingTester, PageAssertionMixin):
 
             assert pf.pagecount() == 2
             assert pf.num_results_all() == [400, 200]
-            self.assertEqualIgnoreOrder(expected_data, pf.all_data())
+            assert_lists_equal_ignoring_order(expected_data, pf.all_data(), "sometext")
 
     @since('2.0.6')
     def test_static_columns_paging(self):
@@ -902,7 +895,7 @@ class TestPagingData(BasePagingTester, PageAssertionMixin):
 
             assert pf.pagecount() == 2
             assert pf.num_results_all() == [400, 200]
-            self.assertEqualIgnoreOrder(expected_data, pf.all_data())
+            assert_lists_equal_ignoring_order(expected_data, pf.all_data(), "sometext")
 
 
 class TestPagingDatasetChanges(BasePagingTester, PageAssertionMixin):
@@ -943,8 +936,7 @@ class TestPagingDatasetChanges(BasePagingTester, PageAssertionMixin):
             pf.request_all()
             assert pf.pagecount() == 2
             assert pf.num_results_all(), [501 == 499]
-
-            self.assertEqualIgnoreOrder(pf.all_data(), expected_data)
+            assert_lists_equal_ignoring_order(pf.all_data(), expected_data, "mytext")
 
     def test_data_change_impacting_later_page(self):
         cursor = self.prepare()
@@ -981,7 +973,7 @@ class TestPagingDatasetChanges(BasePagingTester, PageAssertionMixin):
 
             # add the new row to the expected data and then do a compare
             expected_data.append({'id': 2, 'mytext': 'foo'})
-            self.assertEqualIgnoreOrder(pf.all_data(), expected_data)
+            assert_lists_equal_ignoring_order(pf.all_data(), expected_data, "mytext")
 
     def test_row_TTL_expiry_during_paging(self):
         cursor = self.prepare()
@@ -1064,7 +1056,7 @@ class TestPagingDatasetChanges(BasePagingTester, PageAssertionMixin):
 
             # no need to request page here, because the first page is automatically retrieved
             page1 = pf.page_data(1)
-            self.assertEqualIgnoreOrder(page1, data[:500])
+            assert_lists_equal_ignoring_order(page1, data[:500], "mytext")
 
             # set some TTLs for data on page 3
             for row in data[1000:1500]:
@@ -1080,7 +1072,7 @@ class TestPagingDatasetChanges(BasePagingTester, PageAssertionMixin):
             # check page two
             pf.request_one()
             page2 = pf.page_data(2)
-            self.assertEqualIgnoreOrder(page2, data[500:1000])
+            assert_lists_equal_ignoring_order(page2, data[500:1000], "mytext")
 
             page3expected = []
             for row in data[1000:1500]:
@@ -1093,7 +1085,7 @@ class TestPagingDatasetChanges(BasePagingTester, PageAssertionMixin):
 
             pf.request_one()
             page3 = pf.page_data(3)
-            self.assertEqualIgnoreOrder(page3, page3expected)
+            assert_lists_equal_ignoring_order(page3, page3expected, "mytext")
 
 
 class TestPagingQueryIsolation(BasePagingTester, PageAssertionMixin):
@@ -1172,17 +1164,17 @@ class TestPagingQueryIsolation(BasePagingTester, PageAssertionMixin):
             assert page_fetchers[9].pagecount() == 4
             assert page_fetchers[10].pagecount() == 34
 
-            self.assertEqualIgnoreOrder(flatten_into_set(page_fetchers[0].all_data()), flatten_into_set(expected_data[:5000]))
-            self.assertEqualIgnoreOrder(flatten_into_set(page_fetchers[1].all_data()), flatten_into_set(expected_data[5000:10000]))
-            self.assertEqualIgnoreOrder(flatten_into_set(page_fetchers[2].all_data()), flatten_into_set(expected_data[10000:15000]))
-            self.assertEqualIgnoreOrder(flatten_into_set(page_fetchers[3].all_data()), flatten_into_set(expected_data[15000:20000]))
-            self.assertEqualIgnoreOrder(flatten_into_set(page_fetchers[4].all_data()), flatten_into_set(expected_data[20000:25000]))
-            self.assertEqualIgnoreOrder(flatten_into_set(page_fetchers[5].all_data()), flatten_into_set(expected_data[:5000]))
-            self.assertEqualIgnoreOrder(flatten_into_set(page_fetchers[6].all_data()), flatten_into_set(expected_data[5000:10000]))
-            self.assertEqualIgnoreOrder(flatten_into_set(page_fetchers[7].all_data()), flatten_into_set(expected_data[10000:15000]))
-            self.assertEqualIgnoreOrder(flatten_into_set(page_fetchers[8].all_data()), flatten_into_set(expected_data[15000:20000]))
-            self.assertEqualIgnoreOrder(flatten_into_set(page_fetchers[9].all_data()), flatten_into_set(expected_data[20000:25000]))
-            self.assertEqualIgnoreOrder(flatten_into_set(page_fetchers[10].all_data()), flatten_into_set(expected_data[:50000]))
+            assert_lists_equal_ignoring_order(flatten_into_set(page_fetchers[0].all_data()), flatten_into_set(expected_data[:5000]))
+            assert_lists_equal_ignoring_order(flatten_into_set(page_fetchers[1].all_data()), flatten_into_set(expected_data[5000:10000]))
+            assert_lists_equal_ignoring_order(flatten_into_set(page_fetchers[2].all_data()), flatten_into_set(expected_data[10000:15000]))
+            assert_lists_equal_ignoring_order(flatten_into_set(page_fetchers[3].all_data()), flatten_into_set(expected_data[15000:20000]))
+            assert_lists_equal_ignoring_order(flatten_into_set(page_fetchers[4].all_data()), flatten_into_set(expected_data[20000:25000]))
+            assert_lists_equal_ignoring_order(flatten_into_set(page_fetchers[5].all_data()), flatten_into_set(expected_data[:5000]))
+            assert_lists_equal_ignoring_order(flatten_into_set(page_fetchers[6].all_data()), flatten_into_set(expected_data[5000:10000]))
+            assert_lists_equal_ignoring_order(flatten_into_set(page_fetchers[7].all_data()), flatten_into_set(expected_data[10000:15000]))
+            assert_lists_equal_ignoring_order(flatten_into_set(page_fetchers[8].all_data()), flatten_into_set(expected_data[15000:20000]))
+            assert_lists_equal_ignoring_order(flatten_into_set(page_fetchers[9].all_data()), flatten_into_set(expected_data[20000:25000]))
+            assert_lists_equal_ignoring_order(flatten_into_set(page_fetchers[10].all_data()), flatten_into_set(expected_data[:50000]))
 
 
 class TestPagingWithDeletions(BasePagingTester, PageAssertionMixin):
