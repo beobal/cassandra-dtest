@@ -1174,6 +1174,8 @@ class TestAuthRoles(Tester):
             })
         fixture_dtest_setup.cluster.populate(1, debug=True).start(wait_for_binary_proto=True, jvm_args=['-XX:-PerfDisableSharedMem'])
         nodes = fixture_dtest_setup.cluster.nodelist()
+        n = self.cluster.wait_for_any_log('Created default superuser', 25)
+        logger.debug("Default role created by " + n.name)
         fixture_dtest_setup.superuser = fixture_dtest_setup.patient_exclusive_cql_connection(nodes[0], user='cassandra', password='cassandra')
 
     @pytest.fixture(scope='function', autouse=True)
