@@ -2742,7 +2742,7 @@ class TestAuthUnavailable(Tester):
         except NoHostAvailable as e:
             # From driver
             assert isinstance(list(e.errors.values())[0], AuthenticationFailed)
-            # UnavailableException from server
+            # AuthenticationFailed from server
             assert re.search("code=0100", str(e))
             # Message from server
             assert re.search("Unable to perform authentication: Cannot achieve consistency level QUORUM", str(e))
@@ -2781,12 +2781,12 @@ class TestAuthUnavailable(Tester):
         except NoHostAvailable as e:
             # From driver
             assert isinstance(list(e.errors.values())[0], AuthenticationFailed)
-            # UnavailableException from server
+            # AuthenticationFailed from server
             assert re.search("code=0100", str(e))
             # Message from server
             assert re.search("Unable to perform authentication: Cannot achieve consistency level QUORUM", str(e))
 
-    @since('3.4')
+    @since('4.0')
     def test_authentication_from_cache_while_unavailable(self):
         """
         * Launch a two node cluster with role/permissions cache enabled
@@ -2814,8 +2814,8 @@ class TestAuthUnavailable(Tester):
 
         self.patient_exclusive_cql_connection(node0, user='cassandra', password='cassandra')
 
-    @since('3.4')
-    def test_credentials_cache_handle_unavailable(self):
+    @since('4.0')
+    def test_credentials_cache_background_reload_handle_unavailable(self):
         """
         * Launch a two node cluster with role/permissions cache update interval at a fraction of validity time
         * Connect as default super user
@@ -2857,7 +2857,7 @@ class TestAuthUnavailable(Tester):
         * Run repair
         * Create dummy ks/table
         * Stop one of the nodes
-        * Verify that attempt to select on table fail with UnavailableException
+        * Verify that attempt to select on table fail with Unauthorized
 
         @jira_ticket CASSANDRA-15041
         """
@@ -2875,7 +2875,7 @@ class TestAuthUnavailable(Tester):
 
         node1.stop()
 
-        assert_invalid(cassandra, "SELECT * from ks.cf", "Unable to perform authorization: Cannot achieve consistency level QUORUM", expected=Unavailable)
+        assert_invalid(cassandra, "SELECT * from ks.cf", "Unable to perform authorization: Cannot achieve consistency level QUORUM", expected=Unauthorized)
 
     def test_authorization_through_cache_handle_unavailable(self):
         """
@@ -2885,7 +2885,7 @@ class TestAuthUnavailable(Tester):
         * Run repair
         * Create dummy ks/table
         * Stop one of the nodes
-        * Verify that attempt to select on table fail with UnavailableException
+        * Verify that attempt to select on table fail with Unauthorized
 
         @jira_ticket CASSANDRA-15041
         """
@@ -2909,7 +2909,7 @@ class TestAuthUnavailable(Tester):
         # Wait for cache to timeout
         time.sleep(1)
 
-        assert_invalid(cassandra, "SELECT * from ks.cf", "Unable to perform authorization: Cannot achieve consistency level QUORUM", expected=Unavailable)
+        assert_invalid(cassandra, "SELECT * from ks.cf", "Unable to perform authorization: Cannot achieve consistency level QUORUM", expected=Unauthorized)
 
     def test_authorization_from_cache_while_unavailable(self):
         """
@@ -2943,7 +2943,8 @@ class TestAuthUnavailable(Tester):
         # Authorized from cache
         cassandra.execute("SELECT * from ks.cf")
 
-    def test_permission_cache_handle_unavailable(self):
+    @since('4.0')
+    def test_permission_cache_background_reload_handle_unavailable(self):
         """
         * Launch a two node cluster with role/permissions cache update interval at a fraction of validity time
         * Connect as default super user
