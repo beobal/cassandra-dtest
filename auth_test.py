@@ -1094,9 +1094,6 @@ class TestAuth(Tester):
                   'permissions_validity_in_ms': permissions_validity}
         if self.dtest_config.cassandra_version_from_build >= '3.0':
             config['enable_materialized_views'] = 'true'
-        if self.dtest_config.cassandra_version_from_build >= '3.4':
-            config['credentials_validity_in_ms'] = cache_validity
-            config['credentials_update_interval_in_ms'] = cache_update_interval
         if self.dtest_config.cassandra_version_from_build >= '4.0':
             config['network_authorizer'] = 'org.apache.cassandra.auth.CassandraNetworkAuthorizer'
         self.cluster.set_configuration_options(values=config)
