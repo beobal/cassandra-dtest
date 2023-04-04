@@ -336,6 +336,12 @@ class TestArchiveCommitlog(SnapshotTester):
         else:
             system_cfs_snapshot_dirs = self.make_snapshot(node1, 'system', 'schema_columnfamilies', 'cfs')
 
+        local_dirs  = self.make_snapshot(node1, 'system', 'local_metadata_log', 'local_metadata_log')
+        metadata_snapshot_dirs = self.make_snapshot(node1, 'system', 'metadata_snapshots', 'metadata_snapshots')
+        sealed_dirs = self.make_snapshot(node1, 'system', 'metadata_sealed_periods', 'metadata_sealed_periods')
+        last_sealed_dirs = self.make_snapshot(node1, 'system', 'metadata_last_sealed_period', 'metadata_last_sealed_period')
+        cluster_metadata_snapshot_dirs = self.make_snapshot(node1, 'cluster_metadata', 'distributed_metadata_log', 'distributed_metadata_log')
+
         try:
             # Write more data:
             logger.debug("Writing second 30,000 rows...")
@@ -407,6 +413,18 @@ class TestArchiveCommitlog(SnapshotTester):
                     self.restore_snapshot(system_cfs_snapshot_dir, node1, 'system', 'schema_columnfamilies', 'cfs')
             for snapshot_dir in snapshot_dirs:
                 self.restore_snapshot(snapshot_dir, node1, 'ks', 'cf', 'basic')
+
+            for cm_dir in cluster_metadata_snapshot_dirs:
+                self.restore_snapshot(cm_dir, node1, 'cluster_metadata', 'distributed_metadata_log', 'distributed_metadata_log')
+
+            for local_dir in local_dirs:
+                self.restore_snapshot(local_dir, node1, 'system', 'local_metadata_log', 'local_metadata_log')
+            for snapshot_dir in metadata_snapshot_dirs:
+                self.restore_snapshot(snapshot_dir, node1, 'system', 'metadata_snapshots', 'metadata_snapshots')
+            for sealed_dir in sealed_dirs:
+                self.restore_snapshot(sealed_dir, node1, 'system', 'metadata_sealed_periods', 'metadata_sealed_periods')
+            for last_sealed_dir in last_sealed_dirs:
+                self.restore_snapshot(last_sealed_dir, node1, 'system', 'metadata_last_sealed_period', 'metadata_last_sealed_period')
 
             cluster.start()
 
