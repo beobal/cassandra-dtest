@@ -138,7 +138,10 @@ class TestTopology(Tester):
 
         node3_id = node3.nodetool('info').stdout[25:61]
         node3.stop(wait_other_notice=True)
-        node1.nodetool('removenode ' + node3_id)
+        cmd = 'removenode ' + node3_id
+        if cluster.version() >= '4.99.99':
+            cmd = cmd + ' --force'
+        node1.nodetool(cmd)
 
         node1.stress(['read', 'n=10K', 'no-warmup', '-rate', 'threads=8'])
 
