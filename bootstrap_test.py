@@ -291,13 +291,10 @@ class BootstrapTester(Tester):
 
     def test_consistent_range_movement_true_with_replica_down_should_fail(self):
         self._bootstrap_test_with_replica_down(True)
-
     def test_consistent_range_movement_false_with_replica_down_should_succeed(self):
         self._bootstrap_test_with_replica_down(False)
-
     def test_consistent_range_movement_true_with_rf1_should_fail(self):
         self._bootstrap_test_with_replica_down(True, rf=1)
-
     def test_consistent_range_movement_false_with_rf1_should_succeed(self):
         self._bootstrap_test_with_replica_down(False, rf=1)
 
@@ -319,7 +316,10 @@ class BootstrapTester(Tester):
         if cluster.version() >= '4.0':
             warning = 'Your replication factor 3 for keyspace k is higher than the number of nodes 1 for datacenter dc1'
             assert len(node1.grep_log(warning)) == 1
-            assert len(node2.grep_log(warning)) == 0
+            if cluster.version() >= '4.99.99': # we now log this on all nodes
+                assert len(node2.grep_log(warning)) == 1
+            else:
+                assert len(node2.grep_log(warning)) == 0
 
         session.execute("ALTER KEYSPACE k WITH REPLICATION = {'class' : 'NetworkTopologyStrategy', 'dc1' : '2'}")
         session.execute("CREATE TABLE k.testgtrfmultidc (KEY text PRIMARY KEY)")
@@ -328,7 +328,10 @@ class BootstrapTester(Tester):
         if cluster.version() >= '4.0':
             warning = 'Your replication factor 2 for keyspace k is higher than the number of nodes 1 for datacenter dc1'
             assert len(node1.grep_log(warning)) == 1
-            assert len(node2.grep_log(warning)) == 0
+            if cluster.version() >= '4.99.99':
+                assert len(node2.grep_log(warning)) == 1 # we now log this on all nodes
+            else:
+                assert len(node2.grep_log(warning)) == 0
 
         marks = map(lambda n: n.mark_log(), cluster.nodelist())
         node3 = Node(name='node3',
@@ -390,8 +393,13 @@ class BootstrapTester(Tester):
         successful_bootstrap_expected = not consistent_range_movement
 
         node3 = new_node(cluster, token=node3_token)
-        node3.start(wait_for_binary_proto=successful_bootstrap_expected, wait_other_notice=successful_bootstrap_expected,
-                    jvm_args=["-Dcassandra.consistent.rangemovement={}".format(consistent_range_movement)])
+
+        jvmargs = ["-Dcassandra.consistent.rangemovement={}".format(consistent_range_movement)]
+        if cluster.version() > '4.99.99':
+            node3.set_configuration_options(values={'progress_barrier_min_consistency_level': 'NODE_LOCAL', 'progress_barrier_default_consistency_level': 'NODE_LOCAL', 'progress_barrier_timeout': '2000ms'})
+        node3.start(wait_for_binary_proto=successful_bootstrap_expected,
+                    wait_other_notice=successful_bootstrap_expected,
+                    jvm_args=jvmargs)
 
         if successful_bootstrap_expected:
             # with rf=1 and cassandra.consistent.rangemovement=false, missing sources are ignored
@@ -729,7 +737,7 @@ class BootstrapTester(Tester):
 
         # Add a new node, bootstrap=True ensures that it is not a seed
         node2 = new_node(cluster, bootstrap=True)
-
+        mark = node1.mark_log()
         # kill node2 in the middle of bootstrap
         t = KillOnBootstrap(node2)
         t.start()
@@ -740,6 +748,9 @@ class BootstrapTester(Tester):
 
         # wipe any data for node2
         self._cleanup(node2)
+        if cluster.version() > '4.99.99':
+            node1.watch_log_for("127.0.0.2:7000 is now DOWN", from_mark=mark)
+            res = node1.nodetool('abortbootstrap --ip 127.0.0.2')
         # Now start it again, it should be allowed to join
         mark = node2.mark_log()
         node2.start()
@@ -830,7 +841,9 @@ class BootstrapTester(Tester):
         assert not blind_replacement_node.is_running()
 
 
-    @since('2.1.1')
+    # this test relies on startup of .2 being slow, allowing .3 to start before .2 has finished joining
+    # with tcm this is much quicker, and this is now covered by better tests
+    @since('2.1.1', max_version='4.X')
     def test_simultaneous_bootstrap(self):
         """
         Attempt to bootstrap two nodes at once, to assert the second bootstrapped node fails, and does not interfere.
