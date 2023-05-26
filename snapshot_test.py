@@ -336,6 +336,7 @@ class TestArchiveCommitlog(SnapshotTester):
         else:
             system_cfs_snapshot_dirs = self.make_snapshot(node1, 'system', 'schema_columnfamilies', 'cfs')
 
+        systemlocal_dirs  = self.make_snapshot(node1, 'system', 'local', 'local')
         local_dirs  = self.make_snapshot(node1, 'system', 'local_metadata_log', 'local_metadata_log')
         metadata_snapshot_dirs = self.make_snapshot(node1, 'system', 'metadata_snapshots', 'metadata_snapshots')
         sealed_dirs = self.make_snapshot(node1, 'system', 'metadata_sealed_periods', 'metadata_sealed_periods')
@@ -416,6 +417,9 @@ class TestArchiveCommitlog(SnapshotTester):
 
             for cm_dir in cluster_metadata_snapshot_dirs:
                 self.restore_snapshot(cm_dir, node1, 'cluster_metadata', 'distributed_metadata_log', 'distributed_metadata_log')
+
+            for local_dir in systemlocal_dirs:
+                self.restore_snapshot(local_dir, node1, 'system', 'local', 'local')
 
             for local_dir in local_dirs:
                 self.restore_snapshot(local_dir, node1, 'system', 'local_metadata_log', 'local_metadata_log')
