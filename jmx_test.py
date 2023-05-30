@@ -62,7 +62,10 @@ class TestJMX(Tester):
                 if not isinstance(e, ToolError):
                     raise
                 else:
-                    assert re.search("ConnectException: 'Connection refused( \(Connection refused\))?'.", repr(e))
+                    if cluster.version() < '4.0.80':
+                        assert re.search("ConnectException: 'Connection refused( \(Connection refused\))?'.", repr(e)), str(e)
+                    else:
+                        assert re.search("Server is not initialized yet, cannot run nodetool", repr(e)), str(e)
 
         assert running, 'node1 never started'
 
