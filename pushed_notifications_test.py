@@ -98,25 +98,30 @@ class TestPushedNotifications(Tester):
         waiters = [NotificationWaiter(self, node, ["TOPOLOGY_CHANGE"])
                    for node in list(self.cluster.nodes.values())]
 
-        # The first node sends NEW_NODE for the other 2 nodes during startup, in case they are
-        # late due to network delays let's block a bit longer
-        logger.debug("Waiting for unwanted notifications....")
-        waiters[0].wait_for_notifications(timeout=30, num_notifications=2)
-        waiters[0].clear_notifications()
-
         logger.debug("Issuing move command....")
         node1 = list(self.cluster.nodes.values())[0]
         node1.move("123")
-
+        address = get_ip_from_node(node1)
+        max_polls = 10
+        attempt = 1
         for waiter in waiters:
-            logger.debug("Waiting for notification from {}".format(waiter.address,))
-            notifications = waiter.wait_for_notifications(60.0)
-            assert 1 == len(notifications), notifications
-            notification = notifications[0]
-            change_type = notification["change_type"]
-            address, port = notification["address"]
-            assert "MOVED_NODE" == change_type
-            assert get_ip_from_node(node1) == address
+            # poll each waiter in turn, they should all receive a MOVED_NODE notification for node3
+            # and at most one NEW_NODE for each node in the cluster. Whether nodes send the NEW_NODE
+            # depends on whether that node learns of the new node (either through gossip or TCM)
+            # before or after the listener is established.
+            logger.debug("Checking notifications from {}".format(waiter.address,))
+            notifications = waiter.wait_for_notifications(1.0)
+            logger.debug("Received {}".format(notifications))
+            count = len(notifications)
+            assert 1 <= count <= 4
+            last_notification = notifications[count - 1]
+            if "MOVED_NODE" == last_notification["change_type"] and address == last_notification["address"]:
+                if count > 1:
+                    for earlier in notifications[0:count-1]:
+                        assert "NEW_NODE" == earlier["change_type"]
+                continue
+
+            assert attempt < max_polls, "Didn't receive expected notifications from {}".format(waiter.address)
 
     @pytest.mark.no_vnodes
     def test_move_single_node_localhost(self):
