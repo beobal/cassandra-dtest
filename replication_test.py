@@ -624,16 +624,27 @@ class TestSnitchConfigurationUpdate(Tester):
 
         logger.debug("Restarting node {} with rack2".format(node1.address()))
         mark = node1.mark_log()
-        node1.start()
 
-        # check node not running
-        logger.debug("Waiting for error message in log file")
-
-        if cluster.version() >= '2.2':
-            node1.watch_log_for("Cannot start node if snitch's rack(.*) differs from previous rack(.*)",
-                                from_mark=mark)
+        if cluster.version() >= LooseVersion('5.1'):
+            node1.start(wait_for_binary_proto=True)
+            regex = re.compile(r"^UN(?:\s*)127\.0\.0(?:.*)\s(.*)$", re.IGNORECASE)
+            out, err, _ = node1.nodetool("status")
+            rack_after_restart = ""
+            for line in out.split(os.linesep):
+                m = regex.match(line)
+                if m:
+                    rack_after_restart = m.group(1)
+            assert rack_after_restart == "rack1", "Expected rack to still be reported as rack1, but was {}".format(rack_after_restart)
         else:
-            node1.watch_log_for("Fatal exception during initialization", from_mark=mark)
+            node1.start()
+            # check node not running
+            logger.debug("Waiting for error message in log file")
+
+            if cluster.version() >= '2.2':
+                expected_error = "Cannot start node if snitch's rack(.*) differs from previous rack(.*)"
+            else:
+                expected_error = "Fatal exception during initialization"
+            node1.watch_log_for(expected_error, from_mark=mark, timeout=120)
 
 
     @since('2.1', max_version='5.0.x')
@@ -741,9 +752,8 @@ class TestSnitchConfigurationUpdate(Tester):
         Confirm that switching data centers fails to bring up the node.
         """
         expected_error = (r"Cannot start node if snitch's data center (.*) differs from previous data center (.*)\. "
-                          "Please fix the snitch configuration, decommission and rebootstrap this node")
-        if self.cluster.version() < LooseVersion('5.1'):
-            expected_error += " or use the flag -Dcassandra.ignore_dc=true."
+                          "Please fix the snitch configuration, decommission and rebootstrap this node "
+                          "or use the flag -Dcassandra.ignore_dc=true.")
         self.fixture_dtest_setup.ignore_log_patterns = [expected_error]
 
         cluster = self.cluster
@@ -764,5 +774,16 @@ class TestSnitchConfigurationUpdate(Tester):
             topo_file.write("rack=rack1" + os.linesep)
 
         mark = node.mark_log()
-        node.start()
-        node.watch_log_for(expected_error, from_mark=mark, timeout=120)
+        if self.cluster.version() >= LooseVersion('5.1'):
+            node.start(wait_for_binary_proto=True)
+            regex = re.compile(r"^Datacenter:\s?(.*)$", re.IGNORECASE)
+            out, err, _ = node.nodetool("status")
+            dc_after_restart = ""
+            for line in out.split(os.linesep):
+                m = regex.match(line)
+                if m:
+                    dc_after_restart = m.group(1)
+            assert dc_after_restart == "dc9", "Expected datacenter to still be reported as dc9, but was {}".format(dc_after_restart)
+        else:
+            node.start()
+            node.watch_log_for(expected_error, from_mark=mark, timeout=120)
